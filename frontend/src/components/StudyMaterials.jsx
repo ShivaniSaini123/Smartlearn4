@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 // import { EmailContext } from '../contexts/EmailContext';
 import axios from 'axios';
 // import Swal from 'sweetalert2';
@@ -20,58 +20,58 @@ const StudyMaterials = () => {
   const branches = ["CSE", "ECE", "EE", "MECH", "CHEM", "PIE"];
   const semesters = Array.from({ length: 8 }, (_, i) => i + 1);
 
-  const loadSubjects = async () => {
+  const loadSubjects = useCallback(async () => {
     if (!selectedBranch || !selectedSemester) return;
-     try {
-    const response = await axios.get(`${API_BASE}/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}`);
-    const allSubjects = response.data.flatMap(item =>
-      item.semesters
-        .filter(sem => sem.semesterNumber === parseInt(selectedSemester))
-        .flatMap(sem => sem.subjects)
-    );
+    try {
+      const response = await axios.get(`${API_BASE}/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}`);
+      const allSubjects = response.data.flatMap(item =>
+        item.semesters
+          .filter(sem => sem.semesterNumber === parseInt(selectedSemester))
+          .flatMap(sem => sem.subjects)
+      );
 
-    // Remove duplicates (based on subjectName)
-    const uniqueSubjects = Array.from(
-      new Map(allSubjects.map(sub => [sub.subjectName, sub])).values()
-    );
+      // Remove duplicates (based on subjectName)
+      const uniqueSubjects = Array.from(
+        new Map(allSubjects.map(sub => [sub.subjectName, sub])).values()
+      );
 
-    setSubjects(uniqueSubjects);
-  } catch (error) {
-    console.error("Failed to load subjects:", error);
-  }
-  };
+      setSubjects(uniqueSubjects);
+    } catch (error) {
+      console.error("Failed to load subjects:", error);
+    }
+  }, [selectedBranch, selectedSemester]);
 
-  const loadChapters = async () => {
+  const loadChapters = useCallback(async () => {
     if (!selectedBranch || !selectedSemester || !selectedSubject) return;
   
     try {
       const response = await axios.get(`${API_BASE}/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}&subjectName=${selectedSubject}`);
-    const chapters = response.data
-      .flatMap(item =>
-        item.semesters
-          .filter(sem => sem.semesterNumber === parseInt(selectedSemester))
-          .flatMap(sem => sem.subjects)
-      )
-      .find(subject => subject.subjectName === selectedSubject)?.chapters;
+      const chapters = response.data
+        .flatMap(item =>
+          item.semesters
+            .filter(sem => sem.semesterNumber === parseInt(selectedSemester))
+            .flatMap(sem => sem.subjects)
+        )
+        .find(subject => subject.subjectName === selectedSubject)?.chapters;
 
-    if (chapters) {
-      setChapters(chapters);
-    } else {
+      if (chapters) {
+        setChapters(chapters);
+      } else {
+        setChapters([]);
+      }
+    } catch (error) {
+      console.error("Error loading chapters:", error);
       setChapters([]);
     }
-  } catch (error) {
-    console.error("Error loading chapters:", error);
-    setChapters([]);
-  }
-};
+  }, [selectedBranch, selectedSemester, selectedSubject]);
 
   useEffect(() => {
     loadSubjects();
-  }, [selectedBranch, selectedSemester]);
+  }, [loadSubjects]);
 
   useEffect(() => {
     loadChapters();
-  }, [selectedSubject]);
+  }, [loadChapters]);
 
   return (
     <div className="page-container">

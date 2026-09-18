@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import io from 'socket.io-client';
 import server from '../environment';
 
@@ -53,62 +53,29 @@ export default function VideoMeetComponent() {
   const [connected, setConnected] = useState(false);
   const [toast, setToast] = useState('');
 
+  const videoEnabledRef = useRef(videoEnabled);
+  const audioEnabledRef = useRef(audioEnabled);
+  useEffect(() => {
+    videoEnabledRef.current = videoEnabled;
+    audioEnabledRef.current = audioEnabled;
+  }, [videoEnabled, audioEnabled]);
+
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
-useEffect(() => {
-  if (!connected || !window.localStream) return;
-
-  window.localStream.getVideoTracks().forEach((track) => {
-    track.enabled = videoEnabled;
-  });
-
-  window.localStream.getAudioTracks().forEach((track) => {
-    track.enabled = audioEnabled;
-  });
-}, [videoEnabled, audioEnabled]);
 
   useEffect(() => {
-    if (screenEnabled) startScreenShare();
-  }, [screenEnabled]);
+    if (!connected || !window.localStream) return;
 
-  const initializeMedia = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: videoEnabled,
-        audio: audioEnabled,
-      });
-      window.localStream = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      connectSocket();
-    } catch (err) {
-      console.error('Media initialization error:', err);
-    }
-  };
+    window.localStream.getVideoTracks().forEach((track) => {
+      track.enabled = videoEnabled;
+    });
 
-  const startScreenShare = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      replaceStream(stream);
-
-      stream.getVideoTracks()[0].onended = async () => {
-        try {
-          const userMedia = await navigator.mediaDevices.getUserMedia({
-            video: videoEnabled,
-            audio: audioEnabled,
-          });
-          replaceStream(userMedia);
-        } catch (err) {
-          console.error("Reverting to webcam failed:", err);
-        }
-        setScreenEnabled(false);
-      };
-    } catch (err) {
-      console.error('Screen share error:', err);
-      setScreenEnabled(false);
-    }
-  };
+    window.localStream.getAudioTracks().forEach((track) => {
+      track.enabled = audioEnabled;
+    });
+  }, [videoEnabled, audioEnabled, connected]);
 
   const replaceStream = (stream) => {
     if (localVideoRef.current) localVideoRef.current.srcObject = stream;
@@ -132,6 +99,49 @@ useEffect(() => {
         }
       });
     });
+  };
+
+  const startScreenShare = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      replaceStream(stream);
+
+      stream.getVideoTracks()[0].onended = async () => {
+        try {
+          const userMedia = await navigator.mediaDevices.getUserMedia({
+            video: videoEnabledRef.current,
+            audio: audioEnabledRef.current,
+          });
+          replaceStream(userMedia);
+        } catch (err) {
+          console.error("Reverting to webcam failed:", err);
+        }
+        setScreenEnabled(false);
+      };
+    } catch (err) {
+      console.error('Screen share error:', err);
+      setScreenEnabled(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (screenEnabled) {
+      startScreenShare();
+    }
+  }, [screenEnabled, startScreenShare]);
+
+  const initializeMedia = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: videoEnabled,
+        audio: audioEnabled,
+      });
+      window.localStream = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      connectSocket();
+    } catch (err) {
+      console.error('Media initialization error:', err);
+    }
   };
 
   const connectSocket = () => {

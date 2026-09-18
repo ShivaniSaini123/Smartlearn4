@@ -10,7 +10,7 @@ import { API_BASE } from "../environment";
 
 const ProffDashBoard = () => {
   const navigate = useNavigate();
-   const { email, setEmail, branch, setBranch } = useContext(EmailContext);
+   const { email, setEmail, setBranch } = useContext(EmailContext);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ branch: "", subject: "", semester: "" });
