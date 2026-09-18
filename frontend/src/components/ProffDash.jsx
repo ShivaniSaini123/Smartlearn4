@@ -6,6 +6,8 @@ import { EmailContext } from "../contexts/EmailContext";
 import { handleLogout } from "./Logout";
 import { handleDeleteAccount } from "./DeleteAccountButton";
 import { FaUserCircle } from "react-icons/fa";
+import { API_BASE } from "../environment";
+
 const ProffDashBoard = () => {
   const navigate = useNavigate();
    const { email, setEmail, branch, setBranch } = useContext(EmailContext);
@@ -19,9 +21,9 @@ const ProffDashBoard = () => {
   const handleMarkAttendance = () => setIsModalOpen(true);
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setMessage("");
     setOtp("");
     setFormData({ branch: "", subject: "", semester: "" });
-    setMessage(""); // Reset message when modal is closed
   };
 
   const handleInputChange = (e) => {
@@ -36,9 +38,16 @@ const ProffDashBoard = () => {
       setOtp(newOtp.toString());
   
       try {
-        const res = await fetch("http://localhost:4000/api/v1/attendance", {
+        const token = localStorage.getItem("token");
+        const headers = {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+
+        const res = await fetch(`${API_BASE}/attendance`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
+          credentials: "include",
           body: JSON.stringify({ branch, subject, semester, otp: newOtp }),
         });
 

@@ -1,5 +1,6 @@
 // src/components/DeleteAccountButton.jsx
 import axios from "axios";
+import { API_BASE } from "../environment";
 
 export const handleDeleteAccount = async (email, navigate, setEmail, setBranch) => {
   if (!email) {
@@ -10,17 +11,25 @@ export const handleDeleteAccount = async (email, navigate, setEmail, setBranch) 
   if (!window.confirm("Are you sure you want to delete your account? This cannot be undone.")) return;
 
   try {
+    const token = localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
     // send email in request body
-    await axios.delete("http://localhost:4000/api/v1/delete-account", {
+    await axios.delete(`${API_BASE}/delete-account`, {
       data: { email },
-      withCredentials: true, // harmless if you have cookies; keeps options consistent
+      headers,
+      withCredentials: true,
     });
 
     // clear context + localStorage
-    setEmail(null);
-    setBranch(null);
+    if (setEmail) setEmail(null);
+    if (setBranch) setBranch(null);
+    localStorage.removeItem("token");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("user");
+    localStorage.removeItem("userProfile");
+    localStorage.removeItem("email");
+    localStorage.removeItem("role");
 
     alert("Account deleted. Please register again.");
     navigate("/register");

@@ -29,6 +29,8 @@ import AddSyllabus from "./components/AddSyllabus";
 import StudyMaterials from "./components/StudyMaterials";
 import AttendanceForm from "./components/AttendanceForm";
 import ChatApp from "./components/ChatApp"; 
+import { API_BASE } from "./environment";
+
 const pageTransition = {
   initial: { opacity: 0, x: 200, scale: 0.95 },
   animate: { opacity: 1, x: 0, scale: 1 },
@@ -47,11 +49,21 @@ function App() {
   };
 
   const handleChallengeCreate = async (challengeData) => {
-    await fetch("http://localhost:4000/api/v1/challenges/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(challengeData),
-    });
+    try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+      await fetch(`${API_BASE}/challenges/create`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+        body: JSON.stringify(challengeData),
+      });
+    } catch (err) {
+      console.error("Failed to create challenge:", err);
+    }
   };
 
   return (
@@ -182,10 +194,15 @@ function App() {
               <motion.div {...pageTransition}>
                 <GoalForm onAddGoal={async (goalData) => {
                   try {
-                    const res = await fetch("http://localhost:4000/api/goals", {
+                    const token = localStorage.getItem("token");
+                    const res = await fetch(`${API_BASE}/goals`, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ ...goalData, userId: email }), // Assuming `email` maps to userId in backend
+                      headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                      },
+                      credentials: "include",
+                      body: JSON.stringify({ ...goalData, userId: email }),
                     });
                     if (!res.ok) throw new Error("Failed to add goal");
                     const data = await res.json();

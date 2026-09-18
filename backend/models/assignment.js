@@ -23,13 +23,6 @@ const assignmentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  submittedAt: {
-    type: Date,
-  },
-  submitted: {
-    type: Boolean,
-    default: false,
-  },
   professorName: {
     type: String,
     required: true,

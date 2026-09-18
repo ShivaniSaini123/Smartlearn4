@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import "./ProffTT.css";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../environment";
+
 const initialSubjectState = { subjectName: "", startTime: "", endTime: "", location: "" };
 
 const ProffTimeTable = () => {
@@ -20,11 +22,11 @@ const ProffTimeTable = () => {
 
   const handleTimetableSubmit = async () => {
     try {
-      const response = await axios.post("http://localhost:4000/api/v1/createOrUpdateTimetable", {
+      const response = await axios.post(`${API_BASE}/createOrUpdateTimetable`, {
         semester,
         branch,
         schedule: { [day]: subjects },
-      });
+      }, { withCredentials: true });
       alert("Timetable submitted: " + response.data.message);
     } catch (error) {
       console.error(error);
@@ -35,8 +37,9 @@ const ProffTimeTable = () => {
   const handleDayUpdate = async () => {
     try {
       const response = await axios.put(
-        `http://localhost:4000/api/v1/updateDaySchedule/${semester}/${branch}/${day}`,
-        { subjects }
+        `${API_BASE}/updateDaySchedule/${encodeURIComponent(semester)}/${encodeURIComponent(branch)}/${encodeURIComponent(day)}`,
+        { subjects },
+        { withCredentials: true }
       );
       alert("Day updated: " + response.data.message);
     } catch (error) {

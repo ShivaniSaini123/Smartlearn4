@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Tire from './Tire'; 
 import './Register.css'; 
-// import googleLogo from './google.png';
+import { API_BASE } from '../environment';
 
 const Register = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
@@ -17,21 +17,13 @@ const Register = ({ onSuccess }) => {
     setDirection('');
   }, []);
 
-  const loginWithGoogle = () => {
-    setDirection('right');
-    setIsLoading(true);
-    setTimeout(() => {
-      window.open("http://localhost:4000/auth/google/callback", "_self");
-    }, 500);
-  };
-
   const handleRegister = async (e) => {
     e.preventDefault();
     setDirection('left');
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:4000/api/v1/register", {
+      const response = await fetch(`${API_BASE}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -41,20 +33,13 @@ const Register = ({ onSuccess }) => {
 
       const data = await response.json();
 
-      // if (response.ok) {
-      //   onSuccess(email);
-      //   setTimeout(() => {
-      //     navigate("/verify-otp", { state: { email } });
-      //   }, 500);
-      // } 
       if (response.ok) {
-  localStorage.setItem("userEmail", email);  
-  onSuccess(email);
-  setTimeout(() => {
-    navigate("/verify-otp", { state: { email } });
-  }, 500);
-}
-      else {
+        localStorage.setItem("userEmail", email);  
+        onSuccess(email);
+        setTimeout(() => {
+          navigate("/verify-otp", { state: { email } });
+        }, 500);
+      } else {
         setError(data.message || 'Registration failed, please try again');
         setIsLoading(false);
       }
@@ -108,12 +93,7 @@ const Register = ({ onSuccess }) => {
           </button>
         </form>
 
-        <button onClick={loginWithGoogle} id="google-button" className="google-button">
-          {/* <img src={googleLogo} alt="Google Logo" className="google-logo" /> */}
-          Continue With Google
-        </button>
-
-        <p id="register-footer">
+        <p id="register-footer" style={{ marginTop: '1.5rem' }}>
           Already have an account?{' '}
           <span onClick={handleLoginClick} style={{ cursor: 'pointer', color: '#f54291' }}>
             Log In

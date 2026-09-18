@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { EmailContext } from "../contexts/EmailContext";
 import './Login.css'; // Import styles for the Login component
+import { API_BASE } from "../environment";
 
 const Login = () => {
   const [password, setPassword] = useState("");
@@ -15,9 +16,10 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:4000/api/v1/login", {
+      const response = await fetch(`${API_BASE}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -31,9 +33,13 @@ const Login = () => {
         const user = data.user;
 
         setEmails(email);
+        localStorage.setItem("email", email);
         localStorage.setItem("userEmail", email);
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         localStorage.setItem("user", JSON.stringify({
-          id: user._id,
+          id: user._id || user.id,
           email: user.email,
           role: user.role,
           college: user.college,
@@ -43,7 +49,7 @@ const Login = () => {
         }));
 
         const role = user.role || "Student";
-        console.log("Role is:", role);
+        localStorage.setItem("role", role);
 
         // Redirect based on role
         const targetRoute = role === "Professor" ? "/classDashBoard" : "/dashboard";

@@ -27,11 +27,6 @@ if (!email || email.trim() === "") {
         department: department || "General Studies",
         college: college || "Unknown College",
         phone: phone || null,
-        assignments: { done: 0, total: 0 },
-        classes: { attended: 0, total: 0 },
-        weeksclasses: { attended: 0, total: 0 },
-        projects: { completed: 0, total: 0 },
-        timetable: [],
       });
       console.log("Final User Object before saving:", user);
       await user.save();

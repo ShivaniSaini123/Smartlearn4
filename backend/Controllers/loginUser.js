@@ -1,34 +1,66 @@
 const User = require("../models/userSchema");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: "Email and password are required." });
+  }
+
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
     if (!user.isVerified) {
-      // User exists and password is valid, but OTP not verified
       return res.status(403).json({
+        success: false,
         message: "Email not verified.",
         redirectTo: "/verify-otp",
-        email: user.email, // Send email back to client to pass into VerifyOtp
+        email: user.email,
       });
     }
 
-    // If verified, proceed with login (e.g., generate token)
-    return res.status(200).json({ message: "Login successful", user });
+    // Generate signed JWT token
+    const secret = process.env.JWT_SECRET || "smartlearn_default_jwt_secret";
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role || "Student" },
+      secret,
+      { expiresIn: "7d" }
+    );
+
+    // Set HttpOnly cookie
+    const isProduction = process.env.NODE_ENV === "production";
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Sanitize user object (exclude password, otp, otpExpiresAt)
+    const { password: _p, otp: _o, otpExpiresAt: _oe, ...safeUser } = user.toObject();
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: safeUser,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Login error:", error.message);
+    return res.status(500).json({ success: false, message: "Server error during login." });
   }
 };
 
 module.exports = loginUser;
+

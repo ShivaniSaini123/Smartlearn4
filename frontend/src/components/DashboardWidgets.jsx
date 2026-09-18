@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./Dashboard.css";
 import AIChatTutor from "./Aichattutor";
+import { API_BASE as API } from "../environment";
 
-const API = "http://localhost:4000/api/v1";
 const POMO_TOTAL = 25 * 60;
 const circumference = 2 * Math.PI * 36;
 

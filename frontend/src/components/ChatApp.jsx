@@ -6,8 +6,9 @@ import { faCheck, faCheckDouble, faTrash } from '@fortawesome/free-solid-svg-ico
 import { EmailContext as AuthContext } from "../contexts/EmailContext";
 import "./ChatApp.css";
 import { useNavigate } from "react-router-dom";
+import server, { API_BASE } from "../environment";
 
-const SOCKET_URL = "http://localhost:4000";
+const SOCKET_URL = server;
 
 function Chat() {
   const navigate = useNavigate();
@@ -147,7 +148,7 @@ socketRef.current.on("message-saved", (savedMessage) => {
     const fetchContacts = async () => {
       try {
         const { data } = await axios.get(
-          `http://localhost:4000/api/v1/users/${encodeURIComponent(email)}/contacts`
+          `${API_BASE}/users/${encodeURIComponent(email)}/contacts`
         );
 
         const contactsFormatted = Array.isArray(data.contacts)
@@ -170,7 +171,7 @@ socketRef.current.on("message-saved", (savedMessage) => {
     (async () => {
       try {
         const { data } = await axios.get(
-          `http://localhost:4000/api/v1/users/${encodeURIComponent(email)}/connection-requests`
+          `${API_BASE}/users/${encodeURIComponent(email)}/connection-requests`
         );
 
         if (Array.isArray(data.connectionRequests)) {
@@ -193,7 +194,7 @@ socketRef.current.on("message-saved", (savedMessage) => {
     const fetchMessages = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:4000/api/v1/messages/${encodeURIComponent(email)}/${encodeURIComponent(selectedUser.email)}`
+          `${API_BASE}/messages/${encodeURIComponent(email)}/${encodeURIComponent(selectedUser.email)}`
         );
         const messages = res.data.messages || [];
 
@@ -203,7 +204,7 @@ socketRef.current.on("message-saved", (savedMessage) => {
         }));
 
         // Mark messages as read
-        await axios.post(`http://localhost:4000/api/v1/messages/mark-read`, {
+        await axios.post(`${API_BASE}/messages/mark-read`, {
           user1: email,
           user2: selectedUser.email,
         });
@@ -271,7 +272,7 @@ const sendFileToServer = async (file) => {
   formData.append("type", getFileType(file));
 
   const res = await axios.post(
-    "http://localhost:4000/api/v1/send-file",
+    `${API_BASE}/send-file`,
     formData
   );
 
@@ -366,7 +367,7 @@ useEffect(() => {
     }
 
     try {
-      const { data } = await axios.get("http://localhost:4000/api/v1/users/search", {
+      const { data } = await axios.get(`${API_BASE}/users/search`, {
         params: { email: trimmedSearchEmail },
       });
 
@@ -393,7 +394,7 @@ useEffect(() => {
 
     try {
       const response = await axios.post(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(email)}/connection-requests`,
+        `${API_BASE}/users/${encodeURIComponent(email)}/connection-requests`,
         { toEmail: searchResult.email },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -417,7 +418,7 @@ useEffect(() => {
   const handleAcceptRequest = async (requesterEmail) => {
     try {
       const res = await axios.post(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(email)}/connection-requests/${encodeURIComponent(requesterEmail)}/accept`
+        `${API_BASE}/users/${encodeURIComponent(email)}/connection-requests/${encodeURIComponent(requesterEmail)}/accept`
       );
 
       if (res.status === 200) {
@@ -434,7 +435,7 @@ useEffect(() => {
   const handleRejectRequest = async (requesterEmail) => {
     try {
       const res = await axios.delete(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(email)}/connection-requests/${encodeURIComponent(requesterEmail)}/reject`
+        `${API_BASE}/users/${encodeURIComponent(email)}/connection-requests/${encodeURIComponent(requesterEmail)}/reject`
       );
 
       if (res.status === 200) {
@@ -450,7 +451,7 @@ useEffect(() => {
   const handleDeleteContact = async (contactEmail) => {
     try {
       const response = await axios.delete(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(email)}/contacts/${encodeURIComponent(contactEmail)}`
+        `${API_BASE}/users/${encodeURIComponent(email)}/contacts/${encodeURIComponent(contactEmail)}`
       );
 
       if (response.status === 200) {
@@ -473,7 +474,7 @@ useEffect(() => {
       return;
     }
     try {
-      const res = await axios.delete(`http://localhost:4000/api/v1/messages/delete/${msg._id}`);
+      const res = await axios.delete(`${API_BASE}/messages/delete/${msg._id}`);
       if (res.data.success) {
         socketRef.current.emit("message-deleted", msg._id);
         setChats((prevChats) => {

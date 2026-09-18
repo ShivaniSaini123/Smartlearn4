@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { EmailContext } from "../contexts/EmailContext";
 import { useNavigate, useParams } from "react-router-dom"; // ← import useParams
 import "./Profile.css";
+import { API_BASE } from "../environment";
 
 export default function ProfilePage() {
   const { email: contextEmail } = useContext(EmailContext);
@@ -18,17 +19,21 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        console.log("Fetching profile for:", finalEmail);
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const response = await fetch(`http://localhost:4000/api/v1/profile/${finalEmail}`);
+        const response = await fetch(`${API_BASE}/profile/${encodeURIComponent(finalEmail)}`, {
+          credentials: "include",
+          headers,
+        });
         if (!response.ok) throw new Error("User not found");
         const data = await response.json();
         setUser(data);
         // SAVE PROFILE IN LOCAL STORAGE
-      localStorage.setItem(
-      "userProfile",
-      JSON.stringify(data)
-      );
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify(data)
+        );
       } catch (err) {
         setError(err.message);
       } finally {

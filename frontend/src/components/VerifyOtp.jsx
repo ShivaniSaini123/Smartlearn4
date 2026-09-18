@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import './VerifyOtp.css';
 import { useLocation } from "react-router-dom";
+import { API_BASE } from "../environment";
 const VerifyOtp = () => {
   const location = useLocation();
   const email = location.state?.email || "";
@@ -18,8 +19,9 @@ const VerifyOtp = () => {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    if (index < 5) {
-      inputsRef.current[index + 1].focus();
+    // Focus next input
+    if (element.nextSibling) {
+      element.nextSibling.focus();
     }
   };
 
@@ -36,9 +38,10 @@ const VerifyOtp = () => {
     e.preventDefault();
     const otpCode = otp.join("");
     try {
-      const response = await fetch("http://localhost:4000/api/v1/verify-otp", {
+      const response = await fetch(`${API_BASE}/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, otp: otpCode }),
       });
       const data = await response.json();

@@ -2,6 +2,8 @@ import React, { useState, useContext } from "react";
 import axios from "axios";
 import { EmailContext } from "../contexts/EmailContext";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../environment";
+
 const AddAssignmentForm = ({ branch, refreshAssignments }) => {
   const navigate = useNavigate();
   const { email } = useContext(EmailContext);
@@ -20,23 +22,18 @@ const AddAssignmentForm = ({ branch, refreshAssignments }) => {
   const [files, setFiles] = useState([]); // Multiple files
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setAssignmentData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    setAssignmentData({ ...assignmentData, [e.target.name]: e.target.value });
   };
 
   const handleFileChange = (e) => {
-    setFiles([...e.target.files]); // Store all selected files
+    setFiles([...e.target.files]); // Store multiple files
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting:", assignmentData, "Files:", files);
 
-    if (!assignmentData.branch) {
-      console.error("Error: Branch is missing");
+    if (!files.length) {
+      alert("Please upload at least one file! 📁");
       return;
     }
 
@@ -50,8 +47,9 @@ const AddAssignmentForm = ({ branch, refreshAssignments }) => {
     });
 
     try {
-      await axios.post("http://localhost:4000/api/v1/assignment", formData, {
+      await axios.post(`${API_BASE}/assignment`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
       });
       refreshAssignments?.();
       alert("Assignment submitted successfully! ✅");

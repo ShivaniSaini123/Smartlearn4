@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "./Goals.css";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../environment";
+
 const Goals = () => {
   const [form, setForm] = useState({
     title: "",
@@ -10,7 +12,7 @@ const Goals = () => {
     deadline: "",
     userId: "",
   });
-const navigate = useNavigate();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [goals, setGoals] = useState([]);
@@ -28,20 +30,9 @@ const navigate = useNavigate();
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setSelectedDate(today);
-  }, []);
 
-  useEffect(() => {
-    try {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      if (storedUser?.email) {
-        setForm((prevForm) => ({
-          ...prevForm,
-          userId: storedUser.email,
-        }));
-      }
-    } catch (err) {
-      console.error("Error reading user from localStorage", err);
-    }
+    const email = localStorage.getItem("email") || JSON.parse(localStorage.getItem("user") || "{}")?.email || "";
+    setForm((prev) => ({ ...prev, userId: email }));
   }, []);
 
   const fetchGoals = useCallback(async (date) => {
@@ -49,8 +40,14 @@ const navigate = useNavigate();
 
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(
-        `http://localhost:4000/api/v1/goals/${form.userId}?date=${date}`
+        `${API_BASE}/goals/${encodeURIComponent(form.userId)}?date=${encodeURIComponent(date)}`,
+        {
+          credentials: "include",
+          headers,
+        }
       );
       const result = await res.json();
       setGoals(result || []);
@@ -89,9 +86,14 @@ const navigate = useNavigate();
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:4000/api/v1/goals", {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/goals`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
         body: JSON.stringify(form),
       });
 
@@ -122,8 +124,11 @@ const navigate = useNavigate();
 
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/goals/${goalId}`, {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/goals/${goalId}`, {
         method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
       });
 
       const result = await res.json();
@@ -145,8 +150,11 @@ const navigate = useNavigate();
   const handleToggle = async (goalId) => {
   setLoading(true);
   try {
-    const res = await fetch(`http://localhost:4000/api/v1/goals/${goalId}/toggle`, {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_BASE}/goals/${goalId}/toggle`, {
       method: "PATCH",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
     });
 
     const result = await res.json();
@@ -187,9 +195,14 @@ const navigate = useNavigate();
 
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/goals/${goalBeingEdited}`, {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/goals/${goalBeingEdited}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
         body: JSON.stringify(editForm),
       });
 

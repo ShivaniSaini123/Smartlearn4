@@ -22,24 +22,17 @@ const registerUser = async (req, res) => {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); 
 
     // Create new user with OTP and unverified status
+    const normalizedEmail = email.trim().toLowerCase();
     const newUser = new User({
-      // name: "Anonymous",
-      email,
+      name: req.body.name ? req.body.name.trim() : "Student",
+      email: normalizedEmail,
       password: hashedPassword,
-    //   yearOfStudy: "1",
-      
-      department:"General Studies",
-      college:"Unknown College",
-      phone: 7017344818,
-      assignments: { done: 0, total: 0 },
-      classes: { attended: 0, total: 0 },
-      weeksclasses: { attended: 0, total: 0 },
-      projects: { completed: 0, total: 0 },
-      timetable: [],  
+      department: req.body.department || "General Studies",
+      college: req.body.college || "Unknown College",
+      phone: req.body.phone || "",
       otp,
       otpExpiresAt,
       isVerified: false,
-
     });
 
     await newUser.save();

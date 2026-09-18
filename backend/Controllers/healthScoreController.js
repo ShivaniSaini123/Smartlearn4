@@ -18,7 +18,7 @@ exports.getHealthScore = async (req, res) => {
     // Assignment completion — adjust model/field names to match your Assignment schema if different
     let assignmentCompletionPct = 0;
     try {
-      const Assignment = require("../models/Assignment"); // adjust path if needed
+      const Assignment = require("../models/assignment"); // exact filename match
       const allAssignments = await Assignment.find({ userId });
       assignmentCompletionPct = allAssignments.length
         ? (allAssignments.filter(a => a.submitted).length / allAssignments.length) * 100

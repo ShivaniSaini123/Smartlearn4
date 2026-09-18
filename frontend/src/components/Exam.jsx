@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Exam.css';
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../environment";
+
 const motivationalQuotes = [
   "Believe you can and you're halfway there.",
   "The harder you work for something, the greater you’ll feel when you achieve it.",
@@ -43,15 +45,24 @@ const ExamTimetable = () => {
   useEffect(() => {
     if (!branch || !semester) return;
 
+    let timerInterval = null;
+    let isMounted = true;
+
     const fetchExamTimetable = async () => {
       setLoading(true);
       setError('');
       try {
-        const response = await axios.get(`http://localhost:4000/api/v1/getTimetable`, {
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await axios.get(`${API_BASE}/getTimetable`, {
           params: { branch, semester: parseInt(semester) },
+          withCredentials: true,
+          headers,
         });
 
-        const examData = response.data.exams;
+        if (!isMounted) return;
+
+        const examData = response.data.exams || [];
         setExams(examData);
         setQuote(getRandomQuote());
         setLoading(false);
@@ -62,19 +73,23 @@ const ExamTimetable = () => {
             .sort((a, b) => a - b)[0];
           setTimeLeft(calculateTimeLeft(nextExamDate));
 
-          const timerInterval = setInterval(() => {
+          timerInterval = setInterval(() => {
             setTimeLeft(calculateTimeLeft(nextExamDate));
           }, 1000);
-
-          return () => clearInterval(timerInterval);
         }
       } catch (err) {
+        if (!isMounted) return;
         setError('Error fetching exam timetable');
         setLoading(false);
       }
     };
 
     fetchExamTimetable();
+
+    return () => {
+      isMounted = false;
+      if (timerInterval) clearInterval(timerInterval);
+    };
   }, [branch, semester]);
 
   return (

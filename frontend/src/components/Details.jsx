@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Details.css";
+import { API_BASE } from "../environment";
 
 const Details = ({ email: propEmail }) => {
   const navigate = useNavigate();
@@ -32,7 +33,12 @@ const Details = ({ email: propEmail }) => {
       // Fetch profile data if in edit mode
       const fetchProfile = async () => {
         try {
-          const res = await fetch(`http://localhost:4000/api/v1/profile/${email}`);
+          const token = localStorage.getItem("token");
+          const headers = token ? { Authorization: `Bearer ${token}` } : {};
+          const res = await fetch(`${API_BASE}/profile/${encodeURIComponent(email)}`, {
+            credentials: "include",
+            headers,
+          });
           if (!res.ok) throw new Error("Failed to fetch profile");
           const data = await res.json();
           setFormData({
@@ -70,11 +76,18 @@ const Details = ({ email: propEmail }) => {
     };
 
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       const response = await fetch(
-        `http://localhost:4000/api/v1/${editMode ? `updateprofile/${email}` : "welcome"}`,
+        `${API_BASE}/${editMode ? `updateprofile/${encodeURIComponent(email)}` : "welcome"}`,
         {
           method: editMode ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
+          credentials: "include",
           body: JSON.stringify(payload),
         }
       );

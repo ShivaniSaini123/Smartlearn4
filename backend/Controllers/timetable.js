@@ -70,19 +70,10 @@ exports.getTt = async (req, res) => {
   try {
     const { semester, branch } = req.params;
 
-    console.log("Semester:", semester);
-    console.log("Branch:", branch);
-
-    const all = await Timetable.find();
-
-    console.log("ALL TIMETABLES:", all);
-
     const timetable = await Timetable.findOne({
       semester: semester.trim(),
       branch: branch.trim(),
-    });
-
-    console.log("FOUND:", timetable);
+    }).lean();
 
     if (!timetable) {
       return res.status(404).json({

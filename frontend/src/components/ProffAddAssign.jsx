@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import "./proffAddAssi.css";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../environment";
 
 const AddAssignment = () => {
 
@@ -69,7 +70,7 @@ const AddAssignment = () => {
       console.log("Submitting FormData...");
 
       const response = await axios.post(
-        'http://localhost:4000/api/v1/addAssignmentProff',
+        `${API_BASE}/addAssignmentProff`,
         formData,
         {
           headers: {

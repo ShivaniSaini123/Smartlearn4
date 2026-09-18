@@ -1,7 +1,9 @@
-// // src/socket.js
-// import { io } from "socket.io-client";
+import { io } from "socket.io-client";
+import server from "./environment";
 
-// // Replace with your backend URL if deployed (e.g., 'https://smartlearn.onrender.com')
-const socket = io("http://localhost:4000");
+const socket = io(server, {
+  withCredentials: true,
+  autoConnect: true,
+});
 
 export default socket;

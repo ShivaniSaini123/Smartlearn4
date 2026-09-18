@@ -57,11 +57,15 @@ exports.saveMessage = async (msgData, recipientOnline, io) => {
     const saved = await conversation.save();
     const lastMessage = saved.messages[saved.messages.length - 1];
 
-    io.to(to).emit("receive-message", lastMessage);
-    io.to(from).emit("message-saved", lastMessage);
+    if (io) {
+      io.to(to).emit("receive_message", lastMessage);
+      io.to(from).emit("message_saved", lastMessage);
+      // Legacy compatibility
+      io.to(to).emit("receive-message", lastMessage);
+      io.to(from).emit("message-saved", lastMessage);
+    }
 
-    console.log('✅ Message saved for:', participantsKey);
-    return lastMessage; // Important to return for callers to use
+    return lastMessage;
   } catch (error) {
     console.error('❌ Error saving message:', error);
   }

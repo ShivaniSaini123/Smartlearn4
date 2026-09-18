@@ -1,10 +1,21 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import axios from 'axios';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { EmailProvider } from './contexts/EmailContext';
 import { OutputProvider } from './contexts/OutputContext';
+
+// Set global axios defaults for cross-origin credentials and JWT auth
+axios.defaults.withCredentials = true;
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Force scroll fix directly on DOM before React mounts
 const rootEl = document.getElementById('root');

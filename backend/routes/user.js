@@ -3,7 +3,8 @@ const express = require('express');
 // const path = require('path');
 const upload = require("../middleware/cloudinaryUpload");
 const router = express.Router();
-const authMiddleware = require("../middleware/auth");
+const { authMiddleware, requireRole } = require("../middleware/auth");
+const Meeting = require("../models/Meeting");
 
 // Controllers
 const registerUser = require('../Controllers/registerUser');
@@ -47,49 +48,51 @@ router.post('/verify-otp', verifyOtp);
 router.post('/welcome', submitUserDetails);
 
 //---------------------------- PROFILE ROUTES ----------------------------//
-router.get('/profile/:email', getuserProfile);
-router.put('/updateprofile/:email', updateUserProfile);
+router.get('/profile/:email', authMiddleware, getuserProfile);
+router.put('/updateprofile/:email', authMiddleware, updateUserProfile);
 
 //---------------------------- ATTENDANCE ROUTES ----------------------------//
-router.post('/attendance', saveOtp);
-router.post('/mark', markAttendance);
-router.post('/view-attendance', viewAttendance);
+router.post('/attendance', authMiddleware, requireRole("Professor", "admin"), saveOtp);
+router.post('/mark', authMiddleware, markAttendance);
+router.post('/view-attendance', authMiddleware, viewAttendance);
+router.post('/attendance/view', authMiddleware, viewAttendance);
 
 //---------------------------- TIMETABLE & EXAM ROUTES ----------------------------//
-router.post('/createOrUpdateTimetable', createOrUpdateTimetable);
-router.put('/updateDaySchedule/:semester/:branch/:day', updateDaySchedule);
-router.post('/addTimetable', addTimetable);
-router.get('/getTimetable', getTimetable);
-router.get('/getTt/:semester/:branch', getTt);
-router.put('/updateExam/:branch/:semester/:examId', updateExam);
-router.delete('/deleteExam/:branch/:semester/:examId', deleteExam);
+router.post('/createOrUpdateTimetable', authMiddleware, requireRole("Professor", "admin"), createOrUpdateTimetable);
+router.put('/updateDaySchedule/:semester/:branch/:day', authMiddleware, requireRole("Professor", "admin"), updateDaySchedule);
+router.post('/addTimetable', authMiddleware, requireRole("Professor", "admin"), addTimetable);
+router.get('/getTimetable', authMiddleware, getTimetable);
+router.get('/getTt/:semester/:branch', authMiddleware, getTt);
+router.put('/updateExam/:branch/:semester/:examId', authMiddleware, requireRole("Professor", "admin"), updateExam);
+router.delete('/deleteExam/:branch/:semester/:examId', authMiddleware, requireRole("Professor", "admin"), deleteExam);
 
 //---------------------------- SYLLABUS ROUTES ----------------------------//
-router.post('/syllabus', addSyllabus);
-router.use('/api', syllabusController);
+router.post('/syllabus', authMiddleware, requireRole("Professor", "admin"), addSyllabus);
+router.use('/api', authMiddleware, syllabusController);
 
 
 //---------------------------- ASSIGNMENTS ROUTES ----------------------------//
-router.get('/assignments', getAllAssignments);
-router.post('/assignment', addSubmission);
-router.post('/submit', submitAssignment);
-// router.post('/addAssignmentProff', addAssignmentProff);
+router.get('/assignments', authMiddleware, getAllAssignments);
+router.post('/assignment', authMiddleware, addSubmission);
+router.post('/submit', authMiddleware, submitAssignment);
 router.post(
   '/addAssignmentProff',
+  authMiddleware,
+  requireRole("Professor", "admin"),
   upload.array('attachments', 5),
   addAssignmentProff
 );
 //---------------------------- GOALS ROUTES ----------------------------//
-router.post('/goals', goalController.createGoal);
-router.get('/goals/:userId', goalController.getGoalsByUser);
-router.put('/goals/:id', goalController.updateGoal);
-router.delete('/goals/:id', goalController.deleteGoal);
-router.patch('/goals/:id/toggle', goalController.toggleGoal);
+router.post('/goals', authMiddleware, goalController.createGoal);
+router.get('/goals/:userId', authMiddleware, goalController.getGoalsByUser);
+router.put('/goals/:id', authMiddleware, goalController.updateGoal);
+router.delete('/goals/:id', authMiddleware, goalController.deleteGoal);
+router.patch('/goals/:id/toggle', authMiddleware, goalController.toggleGoal);
 
 //---------------------------- MEETING ROUTES ----------------------------//
-router.post('/meeting/create', createMeeting);
-router.post('/meeting/verify', verifyMeeting);
-router.get("/meeting/:linkId", async (req, res) => {
+router.post('/meeting/create', authMiddleware, createMeeting);
+router.post('/meeting/verify', authMiddleware, verifyMeeting);
+router.get("/meeting/:linkId", authMiddleware, async (req, res) => {
   const { linkId } = req.params;
   try {
     const meeting = await Meeting.findOne({ linkId });
@@ -101,18 +104,18 @@ router.get("/meeting/:linkId", async (req, res) => {
 });
 
 //---------------------------- CONNECTION & CONTACT ROUTES ----------------------------//
-router.get('/users/:email/contacts', getContacts);
-router.get('/users/:email/connection-requests', getConnectionRequests);
-router.post('/users/:email/connection-requests', sendConnectionRequest);
-router.post("/users/:email/connection-requests/:requesterEmail/accept", acceptConnectionRequest);
-router.delete("/users/:email/connection-requests/:requesterEmail/reject", rejectConnectionRequest);
-router.delete("/users/:email/contacts/:contactEmail", deleteContact);
-router.get('/users/search', getUserByEmail);
+router.get('/users/:email/contacts', authMiddleware, getContacts);
+router.get('/users/:email/connection-requests', authMiddleware, getConnectionRequests);
+router.post('/users/:email/connection-requests', authMiddleware, sendConnectionRequest);
+router.post("/users/:email/connection-requests/:requesterEmail/accept", authMiddleware, acceptConnectionRequest);
+router.delete("/users/:email/connection-requests/:requesterEmail/reject", authMiddleware, rejectConnectionRequest);
+router.delete("/users/:email/contacts/:contactEmail", authMiddleware, deleteContact);
+router.get('/users/search', authMiddleware, getUserByEmail);
 
 //---------------------------- CHAT & MESSAGES ROUTES ----------------------------//
-router.get("/messages/:user1/:user2", msgController.getMessagesBetweenUsers);
-router.delete("/messages/delete/:messageId", msgController.deleteMessageController);
-router.post("/send", async (req, res) => {
+router.get("/messages/:user1/:user2", authMiddleware, msgController.getMessagesBetweenUsers);
+router.delete("/messages/delete/:messageId", authMiddleware, msgController.deleteMessageController);
+router.post("/send", authMiddleware, async (req, res) => {
   try {
     const { sender, recipient, content, type, timestamp, recipientOnline } = req.body;
     const msgData = {
@@ -129,6 +132,7 @@ router.post("/send", async (req, res) => {
 });
 router.post(
   "/send-file",
+  authMiddleware,
   upload.single("file"),
   async (req, res) => {
     try {
@@ -183,51 +187,45 @@ router.post(
     }
   }
 );
-router.post("/mark-delivered", async (req, res) => {
+router.post("/mark-delivered", authMiddleware, async (req, res) => {
   const { user1, user2 } = req.body;
   await msgController.markMessagesDelivered(user1, user2);
   res.status(200).json({ success: true });
 });
-router.post("/messages/mark-read", async (req, res) => {
+router.post("/messages/mark-read", authMiddleware, async (req, res) => {
   const { user1, user2 } = req.body;
   await msgController.markMessagesRead(user1, user2);
   res.status(200).json({ success: true });
 });
-router.get("/unread-senders/:userId", async (req, res) => {
+router.get("/unread-senders/:userId", authMiddleware, async (req, res) => {
   const data = await msgController.getUnreadCountsPerSender(req.params.userId);
   res.status(200).json({ unreadCounts: data });
 });
-router.use((req, res, next) => {
-  console.log(`➡️  ${req.method} ${req.originalUrl}`);
-  next();
-});
+
 // ------------------ LOGOUT & DELETE ------------------ //
-
 router.post("/logout", logoutUser);
-// routes/user.js (replace current line)
-router.delete("/delete-account", deleteAccount);
-
+router.delete("/delete-account", authMiddleware, deleteAccount);
 
 //---------------------------- AI ROUTES ----------------------------//
 router.post(
   "/ai/chat",
+  authMiddleware,
   aiController.chat
 );
 
 // ---------------------------- STUDY STREAK ROUTES ---------------------------- //
-router.get('/streak/:userId', streakController.getStreak);
-router.post('/streak/:userId/ping', streakController.pingActivity);
+router.get('/streak/:userId', authMiddleware, streakController.getStreak);
+router.post('/streak/:userId/ping', authMiddleware, streakController.pingActivity);
  
 // ---------------------------- ACHIEVEMENTS ROUTES ---------------------------- //
-router.get('/achievements/:userId', achievementController.getAchievements);
+router.get('/achievements/:userId', authMiddleware, achievementController.getAchievements);
  
 // ---------------------------- DAILY CHALLENGE ROUTES ---------------------------- //
-router.get('/challenge/today', challengeController.getTodayChallenge);
-router.post('/challenge/:userId/attempt', challengeController.submitAttempt);
-router.get('/challenge/:userId/attempt-today', challengeController.getTodayAttempt);
+router.get('/challenge/today', authMiddleware, challengeController.getTodayChallenge);
+router.post('/challenge/:userId/attempt', authMiddleware, challengeController.submitAttempt);
+router.get('/challenge/:userId/attempt-today', authMiddleware, challengeController.getTodayAttempt);
  
 // ---------------------------- ACADEMIC HEALTH SCORE ROUTE ---------------------------- //
-router.get('/health-score/:userId', healthScoreController.getHealthScore);
- 
+router.get('/health-score/:userId', authMiddleware, healthScoreController.getHealthScore);
 
 module.exports = router;

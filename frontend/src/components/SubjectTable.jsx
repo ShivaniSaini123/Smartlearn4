@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 import tireImage from './Tire.png'; 
 import './StudyMaterials.css';
+import { API_BASE } from '../environment';
 
 const StudyMaterials = () => {
   const [subjects, setSubjects] = useState([]);
@@ -21,13 +22,13 @@ const StudyMaterials = () => {
 
   const loadSubjects = async () => {
     if (!selectedBranch || !selectedSemester) return;
-    const response = await axios.get(`http://localhost:4000/api/v1/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}`);
+    const response = await axios.get(`${API_BASE}/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}`);
     setSubjects(response.data[0].semesters[0].subjects);
   };
 
   const loadChapters = async () => {
     if (!selectedBranch || !selectedSemester || !selectedSubject) return;
-    const response = await axios.get(`http://localhost:4000/api/v1/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}&subjectName=${selectedSubject}`);
+    const response = await axios.get(`${API_BASE}/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}&subjectName=${selectedSubject}`);
     const subjectData = response.data[0].semesters[0].subjects.find(subject => subject.subjectName === selectedSubject);
     setChapters(subjectData ? subjectData.chapters : []);
   };
@@ -53,7 +54,7 @@ const StudyMaterials = () => {
   const toggleChapterCompletion = async (chapterName) => {
     if (!completedChapters[chapterName]) {
       try {
-        await axios.post('http://localhost:4000/api/v1/increment-aura-points', {
+        await axios.post(`${API_BASE}/increment-aura-points`, {
           email: email,
           incrementValue: 7,
         });

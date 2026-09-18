@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 // import tireImage from './Tire.png'; 
 import './StudyMaterials.css';
+import { API_BASE } from '../environment';
 
 const StudyMaterials = () => {
   const [subjects, setSubjects] = useState([]);
@@ -22,7 +23,7 @@ const StudyMaterials = () => {
   const loadSubjects = async () => {
     if (!selectedBranch || !selectedSemester) return;
      try {
-    const response = await axios.get(`http://localhost:4000/api/v1/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}`);
+    const response = await axios.get(`${API_BASE}/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}`);
     const allSubjects = response.data.flatMap(item =>
       item.semesters
         .filter(sem => sem.semesterNumber === parseInt(selectedSemester))
@@ -44,7 +45,7 @@ const StudyMaterials = () => {
     if (!selectedBranch || !selectedSemester || !selectedSubject) return;
   
     try {
-      const response = await axios.get(`http://localhost:4000/api/v1/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}&subjectName=${selectedSubject}`);
+      const response = await axios.get(`${API_BASE}/api/syllabus?branchName=${selectedBranch}&semesterNumber=${selectedSemester}&subjectName=${selectedSubject}`);
     const chapters = response.data
       .flatMap(item =>
         item.semesters

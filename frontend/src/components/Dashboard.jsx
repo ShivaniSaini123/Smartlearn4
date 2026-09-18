@@ -7,6 +7,7 @@ import { handleLogout } from "./Logout";
 import { handleDeleteAccount } from "./DeleteAccountButton";
 import DashboardWidgets from './DashboardWidgets';
 import './Dashboard.css';
+import { API_BASE } from "../environment";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -29,7 +30,7 @@ const Dashboard = () => {
   const getUser = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:4000/api/v1/profile/${encodeURIComponent(email)}`,
+        `${API_BASE}/profile/${encodeURIComponent(email)}`,
         { withCredentials: true }
       );
       setUserdata(response.data);

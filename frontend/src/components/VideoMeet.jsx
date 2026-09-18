@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./VideoMeet.css"; // Import CSS
+import { API_BASE } from "../environment";
 const VideoMeet = () => {
   const [isCreating, setIsCreating] = useState(true);
   const [otp, setOtp] = useState("");
@@ -28,10 +29,10 @@ const VideoMeet = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:4000/api/v1/meeting/create", {
+      const response = await axios.post(`${API_BASE}/meeting/create`, {
         otp,
         durationMinutes: duration,
-      });
+      }, { withCredentials: true });
 
       // Assuming response.data.link is something like "/meet/uuid"
       const fullLink = window.location.origin + response.data.link;
@@ -64,10 +65,10 @@ const VideoMeet = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:4000/api/v1/meeting/verify", {
+      const response = await axios.post(`${API_BASE}/meeting/verify`, {
         linkId,
         otp: joinOtp,
-      });
+      }, { withCredentials: true });
 
       if (response.data.success) {
         setMessage("✅ OTP verified! Redirecting...");

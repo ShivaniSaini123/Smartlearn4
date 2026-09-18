@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './proffExam.css';
 import { useNavigate } from "react-router-dom";
-
-const API = "http://localhost:4000/api/v1";
+import { API_BASE as API } from "../environment";
 
 const ProffExam = () => {
   const [activeTab, setActiveTab] = useState(null); // 'view' or 'add'

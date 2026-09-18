@@ -3,6 +3,8 @@ import axios from "axios";
 import "./Assignment.css"; 
 import AddAssignmentForm from "./AddAssignmentForm"; // Import the form component
 import { useNavigate } from "react-router-dom";
+import server, { API_BASE } from "../environment";
+
 const AssignmentsList = () => {
    const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
@@ -12,7 +14,12 @@ const AssignmentsList = () => {
 
   const fetchAssignments = async () => {
     try {
-      const response = await axios.get("http://localhost:4000/api/v1/assignments");
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_BASE}/assignments`, {
+        withCredentials: true,
+        headers,
+      });
       const fetchedAssignments = response.data;
 
       if (!Array.isArray(fetchedAssignments)) {
@@ -93,13 +100,18 @@ const AssignmentsList = () => {
                         <div>
                           <h5>Attachments:</h5>
                           <ul className="attachments-list">
-                            {assignment.attachments.map((file, fileIdx) => (
-                              <li key={fileIdx}>
-                                <a href={`http://localhost:4000${file.url}`} target="_blank" rel="noopener noreferrer">
-                                  {file.filename}
-                                </a>
-                              </li>
-                            ))}
+                            {assignment.attachments.map((file, fileIdx) => {
+                              const fileUrl = file.url?.startsWith("http")
+                                ? file.url
+                                : `${server}${file.url?.startsWith("/") ? "" : "/"}${file.url || ""}`;
+                              return (
+                                <li key={fileIdx}>
+                                  <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                    {file.filename}
+                                  </a>
+                                </li>
+                              );
+                            })}
                           </ul>
                         </div>
                       )}

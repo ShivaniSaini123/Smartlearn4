@@ -18,7 +18,15 @@ async function dropOldParticipantsIndex() {
   }
 }
 
-mongoose.connect('mongodb+srv://sainishivani060905:shivani123@cluster0.aez4f.mongodb.net/Smartlearn?retryWrites=true&w=majority&appName=Cluster0', { useNewUrlParser: true, useUnifiedTopology: true })
+require("dotenv").config();
+
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.error("❌ MONGO_URI missing from environment variables.");
+  process.exit(1);
+}
+
+mongoose.connect(mongoUri)
   .then(async () => {
     console.log('✅ Database connected');
     await dropOldParticipantsIndex();

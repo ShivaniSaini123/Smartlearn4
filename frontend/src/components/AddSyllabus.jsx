@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../environment';
+
 function AddSyllabus() {
   const navigate = useNavigate();
   const [branch, setBranch] = useState('');
@@ -24,9 +26,9 @@ function AddSyllabus() {
               subjectName: subject,
               chapters: [
                 {
-                  chapterName: 'Introduction', // or make this a field
-                  resources: {
-                    studyMaterialLink: syllabus,
+                  chapterName: syllabus,
+                  topics: {
+                    topicName: syllabus,
                   },
                 },
               ],
@@ -37,11 +39,16 @@ function AddSyllabus() {
     };
   
     try {
-      const response = await fetch('http://localhost:4000/api/v1/syllabus', {
+      const token = localStorage.getItem("token");
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      const response = await fetch(`${API_BASE}/syllabus`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(syllabusData),
       });
   

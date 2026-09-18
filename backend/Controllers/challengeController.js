@@ -4,11 +4,16 @@ const { GoogleGenAI } = require("@google/genai");
 const { applyStreakPing } = require("./streakController");
 const { checkAndAwardBadges } = require("./achievementController");
 
-const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY2 });
+const apiKey = process.env.GEMINI_API_KEY2 || process.env.GEMINI_API_KEY;
+const client = apiKey ? new GoogleGenAI({ apiKey }) : null;
 const todayStr = () => new Date().toISOString().split("T")[0];
 
 /* Generates a fresh MCQ via Gemini and caches it for the day */
 async function generateChallenge(date) {
+  if (!client) {
+    throw new Error("Gemini API key is not configured");
+  }
+
   const categories = ["aptitude", "dsa", "subject"];
   const category = categories[new Date(date).getDate() % categories.length];
 
@@ -20,7 +25,7 @@ Respond ONLY with valid JSON, no markdown, no preamble, in this exact shape:
 Generate today's question of the day for category: ${category}`;
 
   const response = await client.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
     contents: prompt,
   });
 
@@ -90,7 +95,8 @@ exports.submitAttempt = async (req, res) => {
 
     res.json({ isCorrect, correctAnswer: challenge.correctAnswer, explanation: challenge.explanation, attempt, streak });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Submit challenge attempt error:", err.message);
+    res.status(500).json({ error: "Failed to submit challenge attempt" });
   }
 };
 
@@ -113,6 +119,7 @@ exports.getTodayAttempt = async (req, res) => {
       explanation: challenge ? challenge.explanation : null,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Get today attempt error:", err.message);
+    res.status(500).json({ error: "Failed to fetch today's attempt" });
   }
 };

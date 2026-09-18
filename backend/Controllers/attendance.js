@@ -42,8 +42,13 @@ const viewAttendance = async (req, res) => {
 };
 const saveOtp = async (req, res) => {
   try {
-    const { branch, semester, subject, otp } = req.body;
-    console.log("Received OTP POST request:", req.body);
+    const { branch, semester, subject, otp, durationMinutes } = req.body;
+    if (!branch || !semester || !subject || !otp) {
+      return res.status(400).json({ error: "Branch, semester, subject, and OTP are required." });
+    }
+
+    const duration = Number(durationMinutes) || 10; // Default 10 minutes
+    const expiresAt = new Date(Date.now() + duration * 60 * 1000);
 
     let attendance = await Attendance.findOne({ branch, semester });
 
@@ -51,7 +56,7 @@ const saveOtp = async (req, res) => {
       attendance = new Attendance({
         branch,
         semester,
-        subjects: new Map([[subject, otp]])
+        subjects: new Map([[subject, otp]]),
       });
     } else {
       attendance.subjects.set(subject, otp);
@@ -59,108 +64,72 @@ const saveOtp = async (req, res) => {
 
     await attendance.save();
 
-    // Save current time for OTP creation
-    const otpCreatedAt = new Date();
-
-    setTimeout(async () => {
-      try {
-        const current = await Attendance.findOne({ branch, semester });
-
-        if (current && current.subjects.has(subject)) {
-          current.subjects.delete(subject); // delete OTP
-          await current.save();
-
-          const students = await AttendanceRecord.find({ branch, semester });
-
-          for (let student of students) {
-            const subjectIndex = student.subjects.findIndex(s => s.subject === subject);
-
-            if (subjectIndex === -1) {
-              // Subject not found, means completely missed
-              student.subjects.push({
-                subject,
-                attended: 0,
-                missed: 1,
-                lastMarked: null
-              });
-            } else {
-              const subjectData = student.subjects[subjectIndex];
-
-              // Check if they marked attendance *after* OTP creation
-              const markedTime = new Date(subjectData.lastMarked || 0);
-
-              if (markedTime < otpCreatedAt) {
-                // Missed, because last marked was before OTP session
-                subjectData.missed = (subjectData.missed || 0) + 1;
-              } // Else: student has marked during this OTP session, no action
-            }
-
-            await student.save();
-          }
-
-          console.log(`✅ OTP for '${subject}' expired. Missed counts updated.`);
-        }
-      } catch (err) {
-        console.error("❌ Error auto-deleting OTP:", err);
-      }
-    }, 30 * 1000); // 30 seconds (for testing)
-
-    res.status(200).json({ message: "OTP saved. It will auto-expire in 30 seconds." });
-
+    res.status(200).json({
+      success: true,
+      message: `OTP saved successfully. Valid for ${duration} minutes.`,
+      expiresAt,
+    });
   } catch (error) {
-    console.error("Error saving OTP:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error saving OTP:", error.message);
+    res.status(500).json({ error: "Server error saving OTP." });
   }
 };
-// Get current time
-const getCurrentTime = () => new Date(); // make sure this is defined somewhere
 
 // Mark Attendance
 const markAttendance = async (req, res) => {
-  const { email, branch, semester, subject, otp } = req.body;
+  const email = (req.user?.email || req.body.email || "").trim().toLowerCase();
+  const { branch, semester, subject, otp } = req.body;
 
-  if (!email) return res.status(400).json({ error: "Email is required" });
+  if (!email) return res.status(400).json({ error: "Email is required." });
+  if (!branch || !semester || !subject || !otp) {
+    return res.status(400).json({ error: "All fields (branch, semester, subject, OTP) are required." });
+  }
 
   try {
     const attendance = await Attendance.findOne({ branch, semester });
-    if (!attendance || !attendance.subjects.has(subject))
-      return res.status(400).json({ error: "Invalid OTP or details." });
+    if (!attendance || !attendance.subjects.has(subject)) {
+      return res.status(400).json({ error: "No active attendance session for this subject." });
+    }
 
     const storedOtp = attendance.subjects.get(subject);
-    if (!storedOtp || storedOtp.toString().trim() !== otp.toString().trim())
-      return res.status(400).json({ error: "Invalid OTP or details." });
+    if (!storedOtp || storedOtp.toString().trim() !== otp.toString().trim()) {
+      return res.status(400).json({ error: "Invalid OTP." });
+    }
 
-    // Update existing record or create new one
-   let record = await AttendanceRecord.findOne({ email, branch, semester });
+    const now = new Date();
 
-if (!record) {
-  record = new AttendanceRecord({
-    email,
-    branch,
-    semester,
-    subjects: [{ subject, attended: 1, missed: 0, lastMarked: getCurrentTime() }],
-  });
-} else {
-  const existingSubject = record.subjects.find(sub => sub.subject === subject);
+    // Find or create student's attendance record
+    let record = await AttendanceRecord.findOne({ email, branch, semester });
 
-  if (existingSubject) {
-    const now = getCurrentTime();
-    const lastMarked = new Date(existingSubject.lastMarked);
-    const diff = (now - lastMarked) / 1000;
-    if (diff < 30) return res.status(400).json({ error: "Attendance already marked recently." });
-    existingSubject.attended += 1;
-    existingSubject.lastMarked = now;
-  } else {
-    record.subjects.push({ subject, attended: 1, missed: 0, lastMarked: getCurrentTime() });
-  }
-}
+    if (!record) {
+      record = new AttendanceRecord({
+        email,
+        branch,
+        semester,
+        subjects: [{ subject, attended: 1, missed: 0, lastMarked: now }],
+      });
+    } else {
+      const existingSubject = record.subjects.find((sub) => sub.subject.toLowerCase() === subject.toLowerCase());
 
-await record.save();
+      if (existingSubject) {
+        const lastMarked = new Date(existingSubject.lastMarked || 0);
+        const diffSeconds = (now - lastMarked) / 1000;
+        if (diffSeconds < 60) {
+          return res.status(400).json({ error: "Attendance already marked for this class session." });
+        }
+        existingSubject.attended += 1;
+        existingSubject.lastMarked = now;
+      } else {
+        record.subjects.push({ subject, attended: 1, missed: 0, lastMarked: now });
+      }
+    }
 
-    res.status(200).json({ message: "Attendance marked successfully." });
+    await record.save();
+
+    res.status(200).json({ success: true, message: "Attendance marked successfully." });
   } catch (err) {
-    console.error("Error marking attendance:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error marking attendance:", err.message);
+    res.status(500).json({ error: "Server error marking attendance." });
   }
 };
 

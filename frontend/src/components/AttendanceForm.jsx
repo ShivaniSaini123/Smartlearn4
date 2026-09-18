@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import './AttendanceForm.css';
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../environment";
+
 const AttendanceForm = () => {
    const navigate = useNavigate();
   const { email } = useParams();
@@ -18,7 +20,7 @@ const AttendanceForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:4000/api/v1/mark', {
+      const res = await axios.post(`${API_BASE}/mark`, {
         ...formData,
         email,
       }, { withCredentials: true });
@@ -26,22 +28,22 @@ const AttendanceForm = () => {
       setMessage(res.data.message);
       setFormData({ branch: '', semester: '', subject: '', otp: '' });
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Error marking attendance');
+      setMessage(error.response?.data?.error || error.response?.data?.message || 'Error marking attendance');
     }
   };
 
   const handleViewAttendance = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:4000/api/v1/view-attendance', {
+      const res = await axios.post(`${API_BASE}/view-attendance`, {
         email,
         ...viewData,
-      });
+      }, { withCredentials: true });
       setAttendanceData(res.data);
       setMessage('');
       setViewData({ branch: '', semester: '', subject: '' });
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Error fetching attendance');
+      setMessage(error.response?.data?.error || error.response?.data?.message || 'Error fetching attendance');
     }
   };
 const handleTabSwitch = (tab) => {
