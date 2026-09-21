@@ -1,8 +1,7 @@
 // frontend/src/components/AIChatTutor.jsx
 import React, { useState, useRef, useEffect } from "react";
 import "./Aichattutor.css";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:4000";
+import { API_BASE } from "../environment";
 
 const AIChatTutor = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +39,7 @@ const AIChatTutor = () => {
 
     try {
       // Your backend (aiController.js) expects { question } and returns { success, answer }
-      const res = await fetch(`${BACKEND_URL}/api/v1/ai/chat`, {
+      const res = await fetch(`${API_BASE}/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: trimmed }),
