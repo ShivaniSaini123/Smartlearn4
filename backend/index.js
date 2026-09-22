@@ -21,6 +21,7 @@ const server = http.createServer(app);
 const defaultOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
+  "https://smartlearn-2026-cqoyf05vp-shivanis-projects-5d70b67c.vercel.app",
   "https://smartlearnproject-virid.vercel.app",
 ];
 
@@ -39,7 +40,14 @@ const allowedOrigins = Array.from(
 const isOriginAllowed = (origin) => {
   if (!origin) return true; // Allow non-browser requests (e.g. mobile apps, curl, server-to-server)
   const normalized = origin.trim().replace(/\/+$/, "");
-  return allowedOrigins.includes(normalized);
+  if (allowedOrigins.includes(normalized)) return true;
+  try {
+    const { hostname } = new URL(normalized);
+    if (hostname.endsWith(".vercel.app")) return true;
+  } catch {
+    // Ignore invalid URLs
+  }
+  return false;
 };
 
 // Socket.IO setup for real-time communication & WebRTC signaling
