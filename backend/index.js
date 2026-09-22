@@ -17,21 +17,61 @@ const { registerWebRTCSocketHandlers } = require("./Controllers/socketManager");
 const app = express();
 const server = http.createServer(app);
 
-// Allowed Frontend Origins
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
+// Allowed Frontend Origins (Local development + Vercel production + environment overrides)
+const defaultAllowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
-].filter(Boolean);
+  "https://smartlearnproject-virid.vercel.app",
+];
+
+// Parse FRONTEND_URL if provided (supports comma-separated URLs and trims trailing slashes)
+const envOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",")
+      .map((url) => url.trim().replace(/\/$/, ""))
+      .filter(Boolean)
+  : [];
+
+const allowedOrigins = Array.from(
+  new Set([
+    ...defaultAllowedOrigins.map((url) => url.replace(/\/$/, "")),
+    ...envOrigins,
+  ])
+);
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true; // Allow non-browser tools (curl, mobile, server-to-server)
+  const normalizedOrigin = origin.trim().replace(/\/$/, "");
+  return allowedOrigins.includes(normalizedOrigin);
+};
+
+// CORS configuration for Express
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
 
 // Socket.IO setup for real-time communication & WebRTC signaling
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
-      return callback(null, true); // Permissive in dev if needed, origin-matched
+      return callback(null, false);
     },
     methods: ["GET", "POST"],
     credentials: true,
@@ -39,20 +79,10 @@ const io = new Server(server, {
 });
 app.set("io", io);
 
-// ✅ Production Security Middleware
+// ✅ Production Security & CORS Middleware (registered before all routes & rate limiters)
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Explicitly handle preflight OPTIONS requests across all routes
 app.use(helmet({ contentSecurityPolicy: false })); // Permissive CSP to avoid breaking inline assets
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("CORS policy violation: Origin not allowed"), false);
-    },
-    methods: "GET,POST,PUT,DELETE,PATCH",
-    credentials: true,
-  })
-);
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
