@@ -4,17 +4,39 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 require('dotenv').config(); 
 
+// Create and cache reusable email transporter
+let transporter;
+const getTransporter = () => {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+  }
+  return transporter;
+};
+
 const registerUser = async (req, res) => {
-  const { email, password} = req.body;
+  const { email, password } = req.body;
 
   try {
-    //checking if user already exists
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email ? email.trim().toLowerCase() : '';
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    // Checking if user already exists
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered.' });
     }
 
-    // hashing the password
+    // Hashing the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generate OTP
@@ -22,7 +44,6 @@ const registerUser = async (req, res) => {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); 
 
     // Create new user with OTP and unverified status
-    const normalizedEmail = email.trim().toLowerCase();
     const newUser = new User({
       name: req.body.name ? req.body.name.trim() : "Student",
       email: normalizedEmail,
@@ -37,30 +58,26 @@ const registerUser = async (req, res) => {
 
     await newUser.save();
 
-    // Configure email transporter
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    // Send OTP via email
-    await transporter.sendMail({
+    // Send OTP email in the background without blocking the HTTP response
+    const mailer = getTransporter();
+    mailer.sendMail({
       from: `"SmartLearn Services" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: `'SmartLearn OTP Code`,
+      to: normalizedEmail,
+      subject: 'SmartLearn OTP Code',
       text: `Your OTP code is ${otp} for successful registration. NOTE: It will expire in 10 minutes.`
+    }).catch((emailError) => {
+      console.error('Error sending OTP email in background:', emailError.message);
     });
 
-    res.status(201).json({ message: 'OTP sent to your email. Verify to complete registration.', userid: newUser._id });
+    // Respond immediately so frontend can redirect without waiting for SMTP handshake
+    return res.status(201).json({
+      message: 'OTP sent to your email. Verify to complete registration.',
+      userid: newUser._id
+    });
 
   } catch (error) {
     console.error('Error during registration:', error); // Log detailed error
-    res.status(500).json({ message: 'Registration failed.', error: error.message });
+    return res.status(500).json({ message: 'Registration failed.', error: error.message });
   }
 };
 

@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import { API_BASE } from "../environment";
 const VerifyOtp = () => {
   const location = useLocation();
-  const email = location.state?.email || "";
+  const email = location.state?.email || localStorage.getItem("userEmail") || "";
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const [error, setError] = useState("");
   const inputsRef = useRef([]);

@@ -21,6 +21,9 @@ const Register = ({ onSuccess }) => {
     e.preventDefault();
     setDirection('left');
     setIsLoading(true);
+    setError('');
+
+    const normalizedEmail = email.trim().toLowerCase();
 
     try {
       const response = await fetch(`${API_BASE}/register`, {
@@ -28,17 +31,15 @@ const Register = ({ onSuccess }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),  
+        body: JSON.stringify({ email: normalizedEmail, password }),  
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("userEmail", email);  
-        onSuccess(email);
-        setTimeout(() => {
-          navigate("/verify-otp", { state: { email } });
-        }, 500);
+        localStorage.setItem("userEmail", normalizedEmail);  
+        onSuccess(normalizedEmail);
+        navigate("/verify-otp", { state: { email: normalizedEmail } });
       } else {
         setError(data.message || 'Registration failed, please try again');
         setIsLoading(false);
